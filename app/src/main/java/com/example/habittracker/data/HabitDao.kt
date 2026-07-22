@@ -3,6 +3,7 @@ package com.example.habittracker.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
@@ -18,18 +19,15 @@ interface HabitDao {
     @Delete
     suspend fun deleteHabit(habit: Habit)
 
-    @Query("SELECT * FROM completions")
-    fun getAllCompletions(): Flow<List<CompletionRecord>>
+    @Query("SELECT * FROM daily_progress")
+    fun getAllProgress(): Flow<List<DailyProgress>>
 
-    @Query("SELECT EXISTS(SELECT 1 FROM completions WHERE habitId = :habitId AND epochDay = :epochDay)")
-    suspend fun isCompleted(habitId: Long, epochDay: Long): Boolean
+    @Query("SELECT * FROM daily_progress WHERE habitId = :habitId AND epochDay = :epochDay LIMIT 1")
+    suspend fun getProgress(habitId: Long, epochDay: Long): DailyProgress?
 
-    @Insert
-    suspend fun insertCompletion(record: CompletionRecord)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertProgress(progress: DailyProgress)
 
-    @Query("DELETE FROM completions WHERE habitId = :habitId AND epochDay = :epochDay")
-    suspend fun deleteCompletion(habitId: Long, epochDay: Long)
-
-    @Query("SELECT epochDay FROM completions WHERE habitId = :habitId ORDER BY epochDay DESC")
-    suspend fun getCompletedDaysForHabit(habitId: Long): List<Long>
+    @Query("SELECT * FROM daily_progress WHERE habitId = :habitId")
+    suspend fun getProgressForHabit(habitId: Long): List<DailyProgress>
 }

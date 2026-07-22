@@ -6,12 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.habittracker.data.HabitDatabase
 import com.example.habittracker.data.HabitRepository
-import com.example.habittracker.ui.HabitListScreen
+import com.example.habittracker.ui.RootScreen
 import com.example.habittracker.ui.HabitViewModel
 import com.example.habittracker.ui.HabitViewModelFactory
+import com.example.habittracker.ui.isDynamicColorEnabled
 import com.example.habittracker.ui.theme.HabitTrackerTheme
 
 class MainActivity : ComponentActivity() {
@@ -24,9 +28,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            HabitTrackerTheme {
+            var dynamicColor by androidx.compose.runtime.remember {
+                mutableStateOf(isDynamicColorEnabled(applicationContext))
+            }
+            HabitTrackerTheme(dynamicColor = dynamicColor) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    HabitListScreen(viewModel = viewModel)
+                    RootScreen(viewModel = viewModel, onDynamicColorChanged = { dynamicColor = it })
                 }
             }
         }

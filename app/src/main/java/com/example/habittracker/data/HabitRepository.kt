@@ -6,13 +6,22 @@ class HabitRepository(private val dao: HabitDao) {
 
     fun getAllHabits() = dao.getAllHabits()
 
-    fun getAllCompletions() = dao.getAllCompletions()
+    fun getAllProgress() = dao.getAllProgress()
 
-    suspend fun addHabit(name: String, colorHex: String) {
+    suspend fun addHabit(
+        name: String,
+        colorHex: String,
+        type: HabitType,
+        targetCount: Int,
+        targetDurationSeconds: Int
+    ) {
         dao.insertHabit(
             Habit(
                 name = name,
                 colorHex = colorHex,
+                habitType = type,
+                targetCount = targetCount,
+                targetDurationSeconds = targetDurationSeconds,
                 createdAtEpochDay = LocalDate.now().toEpochDay()
             )
         )
@@ -22,27 +31,42 @@ class HabitRepository(private val dao: HabitDao) {
         dao.deleteHabit(habit)
     }
 
-    /** Toggles today's completion state for a habit. */
-    suspend fun toggleToday(habitId: Long) {
-        val today = LocalDate.now().toEpochDay()
-        if (dao.isCompleted(habitId, today)) {
-            dao.deleteCompletion(habitId, today)
-        } else {
-            dao.insertCompletion(CompletionRecord(habitId, today))
-        }
+    /** SIMPLE habits: flips done for the given day. */
+    suspend fun toggleSimple(habitId: Long, epochDay: Long) {
+        val existing = dao.getProgress(habitId, epochDay)
+        val nowDone = existing?.done?.not() ?: true
+        dao.upsertProgress(DailyProgress(habitId, epochDay, value = if (nowDone) 1 else 0, done = nowDone))
     }
 
     /**
+     * COUNT habits: tap to increment by one, wrapping back to 0 once a full
+     * cycle past the target is completed (so a mis-tap is easy to undo).
+     */
+    suspend fun incrementCount(habitId: Long, epochDay: Long, target: Int) {
+        val existing = dao.getProgress(habitId, epochDay)
+        val current = existing?.value ?: 0
+        val next = if (current >= target) 0 else current + 1
+        dao.upsertProgress(DailyProgress(habitId, epochDay, value = next, done = next >= target))
+    }
+
+    /** TIMER habits: called once per second while a timer is running. */
+    suspend fun addTimerSecond(habitId: Long, epochDay: Long, target: Int) {
+        val existing = dao.getProgress(habitId, epochDay)
+        val next = (existing?.value ?: 0) + 1
+        dao.upsertProgress(DailyProgress(habitId, epochDay, value = next, done = next >= target))
+    }
+
+    suspend fun getProgressForHabit(habitId: Long): List<DailyProgress> = dao.getProgressForHabit(habitId)
+
+    /**
      * Current streak = consecutive days ending today (or yesterday, if today
-     * isn't marked done yet) with a completion record.
+     * isn't done yet) with a completed (done=true) progress record.
      */
     suspend fun currentStreak(habitId: Long): Int {
-        val doneDays = dao.getCompletedDaysForHabit(habitId).toSet()
+        val doneDays = dao.getProgressForHabit(habitId).filter { it.done }.map { it.epochDay }.toSet()
         if (doneDays.isEmpty()) return 0
 
         var cursor = LocalDate.now().toEpochDay()
-        // If today isn't done yet, start counting from yesterday instead,
-        // so the streak doesn't reset to 0 the moment the clock rolls over.
         if (cursor !in doneDays) cursor -= 1
 
         var streak = 0

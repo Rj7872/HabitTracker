@@ -1,32 +1,54 @@
 package com.example.habittracker.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.habittracker.data.Habit
+import com.example.habittracker.data.HabitType
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HabitListScreen(viewModel: HabitViewModel) {
     val habits by viewModel.uiState.collectAsState()
+    val selectedEpochDay by viewModel.selectedEpochDayFlow.collectAsState()
+    val selectedDate = remember(selectedEpochDay) { LocalDate.ofEpochDay(selectedEpochDay) }
+
     var showAddDialog by remember { mutableStateOf(false) }
     var habitPendingDelete by remember { mutableStateOf<HabitUiState?>(null) }
 
+    val habitColors = habits.map { it.habit.colorHex }
+
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Habit Tracker", fontWeight = FontWeight.Bold) })
+            WeekStrip(
+                selectedDate = selectedDate,
+                habitColors = habitColors,
+                doneOnDay = { date ->
+                    if (date == selectedDate) {
+                        habits.mapIndexedNotNull { index, state -> if (state.doneOnSelectedDay) index else null }.toSet()
+                    } else emptySet()
+                },
+                onSelectDate = { viewModel.selectDate(it) },
+                onJumpToday = { viewModel.selectToday() }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
@@ -53,12 +75,14 @@ fun HabitListScreen(viewModel: HabitViewModel) {
                     .fillMaxSize()
                     .padding(padding),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(habits, key = { it.habit.id }) { state ->
                     HabitRow(
                         state = state,
-                        onToggle = { viewModel.toggleToday(state.habit.id) },
+                        onSimpleToggle = { viewModel.toggleSimple(state.habit) },
+                        onIncrement = { viewModel.incrementCount(state.habit) },
+                        onTimerToggle = { viewModel.toggleTimer(state.habit) },
                         onLongPress = { habitPendingDelete = state }
                     )
                 }
@@ -69,8 +93,8 @@ fun HabitListScreen(viewModel: HabitViewModel) {
     if (showAddDialog) {
         AddHabitDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name ->
-                viewModel.addHabit(name, "#6750A4")
+            onConfirm = { name, colorHex, type, targetCount, targetMinutes ->
+                viewModel.addHabit(name, colorHex, type, targetCount, targetMinutes)
                 showAddDialog = false
             }
         )
@@ -98,61 +122,118 @@ fun HabitListScreen(viewModel: HabitViewModel) {
 @Composable
 private fun HabitRow(
     state: HabitUiState,
-    onToggle: () -> Unit,
+    onSimpleToggle: () -> Unit,
+    onIncrement: () -> Unit,
+    onTimerToggle: () -> Unit,
     onLongPress: () -> Unit
 ) {
-    Card(
+    val habit = state.habit
+    val baseColor = runCatching { Color(android.graphics.Color.parseColor(habit.colorHex)) }.getOrDefault(Color.Gray)
+    val backgroundColor = baseColor.copy(alpha = 0.22f)
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onToggle, onLongClick = onLongPress)
+            .clip(RoundedCornerShape(20.dp))
+            .background(backgroundColor)
+            .combinedClickable(onClick = {}, onLongClick = onLongPress)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(baseColor),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = if (state.doneToday) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                contentDescription = if (state.doneToday) "Completed today" else "Not completed today",
-                tint = if (state.doneToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(32.dp)
+            Text(
+                habit.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(state.habit.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (state.streak > 0) "🔥 ${state.streak} day streak" else "No streak yet",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(habit.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(subtitleFor(state), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        HabitControl(state = state, baseColor = baseColor, onSimpleToggle = onSimpleToggle, onIncrement = onIncrement, onTimerToggle = onTimerToggle)
+    }
+}
+
+private fun subtitleFor(state: HabitUiState): String {
+    val habit = state.habit
+    return when (habit.habitType) {
+        HabitType.SIMPLE -> if (state.doneOnSelectedDay) "Completed" else "Not completed"
+        HabitType.COUNT -> "${state.valueForSelectedDay}/${habit.targetCount}"
+        HabitType.TIMER -> {
+            val elapsed = formatSeconds(state.valueForSelectedDay)
+            val target = formatSeconds(habit.targetDurationSeconds)
+            "$elapsed/$target"
         }
     }
 }
 
-@Composable
-private fun AddHabitDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+private fun formatSeconds(totalSeconds: Int): String {
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = totalSeconds % 60
+    return if (h > 0) "%02d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
+}
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New habit") },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Habit name") },
-                singleLine = true
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HabitControl(
+    state: HabitUiState,
+    baseColor: Color,
+    onSimpleToggle: () -> Unit,
+    onIncrement: () -> Unit,
+    onTimerToggle: () -> Unit
+) {
+    when (state.habit.habitType) {
+        HabitType.SIMPLE -> {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(if (state.doneOnSelectedDay) baseColor else Color.Transparent)
+                    .combinedClickable(onClick = onSimpleToggle, onLongClick = {})
             )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
-                Text("Add")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    )
+        HabitType.COUNT -> {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (state.doneOnSelectedDay) baseColor else Color.Transparent)
+                    .combinedClickable(onClick = onIncrement, onLongClick = {}),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Increment",
+                    tint = if (state.doneOnSelectedDay) Color.White else baseColor
+                )
+            }
+        }
+        HabitType.TIMER -> {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (state.isTimerRunning) baseColor else Color.Transparent)
+                    .combinedClickable(onClick = onTimerToggle, onLongClick = {}),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (state.isTimerRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (state.isTimerRunning) "Pause" else "Start",
+                    tint = if (state.isTimerRunning) Color.White else baseColor
+                )
+            }
+        }
+    }
 }
