@@ -1,6 +1,7 @@
 package com.example.habittracker.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -136,11 +137,21 @@ fun StreakCalendarScreen(viewModel: HabitViewModel) {
 private fun RecordCard(emoji: String, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.15f))
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(emoji, style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(6.dp))
+        Column(modifier = Modifier.padding(16.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(emoji, style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -161,12 +172,13 @@ private fun MonthGrid(yearMonth: YearMonth, doneDays: Set<Long>, color: Color) {
                     label,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
@@ -178,6 +190,7 @@ private fun MonthGrid(yearMonth: YearMonth, doneDays: Set<Long>, color: Color) {
                 val day = index + 1
                 val date = yearMonth.atDay(day)
                 val isDone = date.toEpochDay() in doneDays
+                val isToday = date == LocalDate.now()
                 val isFuture = date.isAfter(LocalDate.now())
                 Box(
                     modifier = Modifier
@@ -188,20 +201,26 @@ private fun MonthGrid(yearMonth: YearMonth, doneDays: Set<Long>, color: Color) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(
                                 when {
                                     isDone -> color
                                     else -> Color.Transparent
                                 }
+                            )
+                            .then(
+                                if (isToday && !isDone)
+                                    Modifier.border(2.dp, color, RoundedCornerShape(12.dp))
+                                else Modifier
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             day.toString(),
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                             color = when {
                                 isDone -> Color.White
-                                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
                                 else -> MaterialTheme.colorScheme.onSurface
                             },
                             style = MaterialTheme.typography.bodySmall

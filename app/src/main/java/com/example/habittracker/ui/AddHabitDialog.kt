@@ -63,7 +63,7 @@ fun AddHabitDialog(
     var selectedType by remember { mutableStateOf(HabitType.SIMPLE) }
     var targetCountText by remember { mutableStateOf("4") }
     var targetMinutesText by remember { mutableStateOf("30") }
-    var repeatDays by remember { mutableStateOf(AllDays.toSet()) }
+    var repeatDays by remember { mutableStateOf(setOf(java.time.LocalDate.now().dayOfWeek.value)) }
 
     var reminderEnabled by remember { mutableStateOf(false) }
     var reminderMode by remember { mutableStateOf(ReminderMode.FIXED_TIME) }
@@ -74,7 +74,8 @@ fun AddHabitDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New habit") },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        title = { Text("New habit", style = MaterialTheme.typography.headlineSmall) },
         text = {
             Column(
                 modifier = Modifier
@@ -172,7 +173,7 @@ fun AddHabitDialog(
                     ) {
                         Text(
                             if (reminderMode == ReminderMode.FIXED_TIME)
-                                "Reminder at %02d:%02d".format(reminderHour, reminderMinute)
+                                formatFixedTime(reminderHour, reminderMinute)
                             else
                                 "Every ${formatInterval(reminderIntervalMinutes)}"
                         )
@@ -256,10 +257,10 @@ private fun DayOfWeekSelector(selectedDays: Set<Int>, onToggleDay: (Int) -> Unit
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .background(if (isSelected) com.example.habittracker.ui.theme.HabitLightGreen else Color.Transparent)
                     .border(
                         width = 1.5.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        color = if (isSelected) com.example.habittracker.ui.theme.HabitLightGreen else MaterialTheme.colorScheme.outline,
                         shape = CircleShape
                     )
                     .clickable { onToggleDay(day) },
@@ -267,9 +268,50 @@ private fun DayOfWeekSelector(selectedDays: Set<Int>, onToggleDay: (Int) -> Unit
             ) {
                 Text(
                     label,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSelected) Color(0xFF0B3D0B) else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
+
+private fun to12Hour(hour24: Int): Pair<Int, Boolean> {
+    val isAm = hour24 < 12
+    var h12 = hour24 % 12
+    if (h12 == 0) h12 = 12
+    return h12 to isAm
+}
+
+private fun to24Hour(hour12: Int, isAm: Boolean): Int {
+    val h = hour12 % 12
+    return if (isAm) h else h + 12
+}
+
+private fun formatFixedTime(hour24: Int, minute: Int): String {
+    val (h12, isAm) = to12Hour(hour24)
+    return "Reminder at %d:%02d %s".format(h12, minute, if (isAm) "AM" else "PM")
+}
+
+@Composable
+private fun AmPmToggle(isAm: Boolean, onChange: (Boolean) -> Unit) {
+    Column {
+        listOf(true to "AM", false to "PM").forEach { (value, label) ->
+            val selected = isAm == value
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 2.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                    .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onChange(value) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    label,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -294,13 +336,15 @@ private fun ReminderPickerDialog(
     onConfirm: (ReminderMode, Int, Int, Int) -> Unit
 ) {
     var mode by remember { mutableStateOf(initialMode) }
-    var hour by remember { mutableStateOf(initialHour) }
+    var hour12 by remember { mutableStateOf(to12Hour(initialHour).first) }
+    var isAm by remember { mutableStateOf(to12Hour(initialHour).second) }
     var minute by remember { mutableStateOf(initialMinute) }
     var intervalMinutes by remember { mutableStateOf(initialIntervalMinutes) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Set reminder") },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        title = { Text("Set reminder", style = MaterialTheme.typography.titleLarge) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (habitType == HabitType.COUNT) {
@@ -327,9 +371,11 @@ private fun ReminderPickerDialog(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        NumberStepper(value = hour, range = 0..23, onChange = { hour = it }, label = { "%02d".format(it) })
+                        NumberStepper(value = hour12, range = 1..12, onChange = { hour12 = it }, label = { "%d".format(it) })
                         Text(":", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 8.dp))
                         NumberStepper(value = minute, range = 0..59, step = 5, onChange = { minute = it }, label = { "%02d".format(it) })
+                        Spacer(modifier = Modifier.width(12.dp))
+                        AmPmToggle(isAm = isAm, onChange = { isAm = it })
                     }
                 } else {
                     Text("Remind every:", style = MaterialTheme.typography.labelLarge)
@@ -363,7 +409,7 @@ private fun ReminderPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(mode, hour, minute, intervalMinutes) }) { Text("Done") }
+            TextButton(onClick = { onConfirm(mode, to24Hour(hour12, isAm), minute, intervalMinutes) }) { Text("Done") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

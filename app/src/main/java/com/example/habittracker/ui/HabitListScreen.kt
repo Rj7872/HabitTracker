@@ -64,9 +64,13 @@ fun HabitListScreen(viewModel: HabitViewModel) {
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add habit")
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text("New habit", fontWeight = FontWeight.SemiBold) }
+                )
             },
             bottomBar = { BannerAd() }
         ) { padding ->
