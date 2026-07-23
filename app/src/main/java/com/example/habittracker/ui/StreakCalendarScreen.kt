@@ -135,7 +135,7 @@ private fun MonthGrid(yearMonth: YearMonth, doneDays: Set<Long>, color: Color) {
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            modifier = Modifier.height(((daysInMonth + leadingBlanks) / 7 + 1) * 44.dp)
+            modifier = Modifier.height(44.dp * ((daysInMonth + leadingBlanks) / 7 + 1))
         ) {
             items(leadingBlanks) { Box(modifier = Modifier.size(44.dp)) }
             items(daysInMonth) { index ->
