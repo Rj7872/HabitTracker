@@ -37,6 +37,9 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
     val context = LocalContext.current
     var dynamicColor by remember { mutableStateOf(isDynamicColorEnabled(context)) }
     val freezeCount by viewModel.freezeCountFlow.collectAsState()
+    val adReady by RewardedAdManager.isReadyFlow.collectAsState()
+
+    LaunchedEffect(Unit) { RewardedAdManager.preload(context) }
 
     Column(
         modifier = Modifier
@@ -114,28 +117,31 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
                 onClick = {
                     val activity = context as? Activity
                     if (activity == null) return@Button
-                    if (RewardedAdManager.isReady()) {
-                        RewardedAdManager.show(
-                            activity,
-                            onReward = {
-                                FreezeManager.addFreeze(context)
-                                viewModel.refreshFreezeCount()
-                                Toast.makeText(context, "+1 Streak Freeze earned!", Toast.LENGTH_SHORT).show()
-                            },
-                            onUnavailable = {
-                                Toast.makeText(context, "Ad not ready yet — try again in a moment.", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    } else {
-                        Toast.makeText(context, "Ad not ready yet — try again in a moment.", Toast.LENGTH_SHORT).show()
-                    }
+                    RewardedAdManager.show(
+                        activity,
+                        onReward = {
+                            FreezeManager.addFreeze(context)
+                            viewModel.refreshFreezeCount()
+                            Toast.makeText(context, "+1 Streak Freeze earned!", Toast.LENGTH_SHORT).show()
+                        },
+                        onUnavailable = {
+                            Toast.makeText(context, "Ad not ready yet — try again in a few seconds.", Toast.LENGTH_SHORT).show()
+                        }
+                    )
                 },
+                enabled = adReady,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {
-                Text("Watch ad for +1 Freeze")
+                if (adReady) {
+                    Text("Watch ad for +1 Freeze")
+                } else {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Loading ad\u2026")
+                }
             }
         }
 

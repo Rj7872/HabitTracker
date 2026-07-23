@@ -35,6 +35,9 @@ fun AchievementsScreen(viewModel: HabitViewModel) {
     var bestStreakEver by remember { mutableStateOf(0) }
     var totalCompletions by remember { mutableStateOf(0) }
     var claimedIds by remember { mutableStateOf(BadgeManager.getClaimedBadgeIds(context)) }
+    val adReady by RewardedAdManager.isReadyFlow.collectAsState()
+
+    LaunchedEffect(Unit) { RewardedAdManager.preload(context) }
 
     LaunchedEffect(habits) {
         bestStreakEver = habits.maxOfOrNull { viewModel.bestStreakBlocking(it.habit.id) } ?: 0
@@ -74,23 +77,20 @@ fun AchievementsScreen(viewModel: HabitViewModel) {
                     progress = progress,
                     isEligible = isEligible,
                     isClaimed = isClaimed,
+                    adReady = adReady,
                     onClaim = {
                         val activity = context as? Activity ?: return@BadgeCard
-                        if (RewardedAdManager.isReady()) {
-                            RewardedAdManager.show(
-                                activity,
-                                onReward = {
-                                    BadgeManager.claim(context, badge.id)
-                                    claimedIds = BadgeManager.getClaimedBadgeIds(context)
-                                    Toast.makeText(context, "${badge.title} unlocked!", Toast.LENGTH_SHORT).show()
-                                },
-                                onUnavailable = {
-                                    Toast.makeText(context, "Ad not ready yet — try again in a moment.", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        } else {
-                            Toast.makeText(context, "Ad not ready yet — try again in a moment.", Toast.LENGTH_SHORT).show()
-                        }
+                        RewardedAdManager.show(
+                            activity,
+                            onReward = {
+                                BadgeManager.claim(context, badge.id)
+                                claimedIds = BadgeManager.getClaimedBadgeIds(context)
+                                Toast.makeText(context, "${badge.title} unlocked!", Toast.LENGTH_SHORT).show()
+                            },
+                            onUnavailable = {
+                                Toast.makeText(context, "Ad not ready yet — try again in a few seconds.", Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     }
                 )
             }
@@ -104,6 +104,7 @@ private fun BadgeCard(
     progress: Int,
     isEligible: Boolean,
     isClaimed: Boolean,
+    adReady: Boolean,
     onClaim: () -> Unit
 ) {
     Card(
@@ -160,7 +161,9 @@ private fun BadgeCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                isEligible -> TextButton(onClick = onClaim) { Text("Watch ad to claim") }
+                isEligible -> TextButton(onClick = onClaim, enabled = adReady) {
+                    Text(if (adReady) "Watch ad to claim" else "Loading ad\u2026")
+                }
                 else -> Text(
                     "$progress / ${badge.threshold}",
                     style = MaterialTheme.typography.labelMedium,
