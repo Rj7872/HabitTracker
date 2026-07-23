@@ -1,10 +1,12 @@
 package com.example.habittracker.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.habittracker.data.Habit
 import com.example.habittracker.data.HabitRepository
 import com.example.habittracker.data.HabitType
+import com.example.habittracker.notifications.ReminderScheduler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +25,7 @@ data class HabitUiState(
     val isTimerRunning: Boolean
 )
 
-class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
+class HabitViewModel(application: Application, private val repository: HabitRepository) : AndroidViewModel(application) {
 
     private val selectedEpochDay = MutableStateFlow(LocalDate.now().toEpochDay())
     val selectedEpochDayFlow: StateFlow<Long> = selectedEpochDay
@@ -78,16 +80,33 @@ class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
         selectedEpochDay.value = LocalDate.now().toEpochDay()
     }
 
-    fun addHabit(name: String, colorHex: String, type: HabitType, targetCount: Int, targetDurationMinutes: Int) {
+    fun addHabit(
+        name: String,
+        colorHex: String,
+        type: HabitType,
+        targetCount: Int,
+        targetDurationMinutes: Int,
+        repeatDays: Set<Int>,
+        reminderEnabled: Boolean,
+        reminderHour: Int,
+        reminderMinute: Int
+    ) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            repository.addHabit(name.trim(), colorHex, type, targetCount, targetDurationMinutes * 60)
+            val habit = repository.addHabit(
+                name.trim(), colorHex, type, targetCount, targetDurationMinutes * 60,
+                repeatDays, reminderEnabled, reminderHour, reminderMinute
+            )
+            if (habit.reminderEnabled) {
+                ReminderScheduler.schedule(getApplication(), habit)
+            }
             refreshStreaks()
         }
     }
 
     fun deleteHabit(habit: Habit) {
         if (runningHabitId.value == habit.id) stopTimer()
+        ReminderScheduler.cancel(getApplication(), habit)
         viewModelScope.launch {
             repository.deleteHabit(habit)
             refreshStreaks()
@@ -133,6 +152,8 @@ class HabitViewModel(private val repository: HabitRepository) : ViewModel() {
     }
 
     suspend fun progressForHabitBlocking(habitId: Long) = repository.getProgressForHabit(habitId)
+
+    suspend fun bestStreakBlocking(habitId: Long) = repository.bestStreak(habitId)
 
     private suspend fun refreshStreaks() {
         val current = uiState.value

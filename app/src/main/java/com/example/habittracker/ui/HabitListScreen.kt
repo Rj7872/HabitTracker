@@ -2,6 +2,7 @@ package com.example.habittracker.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -93,8 +95,8 @@ fun HabitListScreen(viewModel: HabitViewModel) {
     if (showAddDialog) {
         AddHabitDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, colorHex, type, targetCount, targetMinutes ->
-                viewModel.addHabit(name, colorHex, type, targetCount, targetMinutes)
+            onConfirm = { name, colorHex, type, targetCount, targetMinutes, repeatDays, reminderEnabled, reminderHour, reminderMinute ->
+                viewModel.addHabit(name, colorHex, type, targetCount, targetMinutes, repeatDays, reminderEnabled, reminderHour, reminderMinute)
                 showAddDialog = false
             }
         )
@@ -168,7 +170,7 @@ private fun subtitleFor(state: HabitUiState): String {
     val habit = state.habit
     return when (habit.habitType) {
         HabitType.SIMPLE -> if (state.doneOnSelectedDay) "Completed" else "Not completed"
-        HabitType.COUNT -> "${state.valueForSelectedDay}/${habit.targetCount}"
+        HabitType.COUNT -> if (state.doneOnSelectedDay) "Completed" else "${state.valueForSelectedDay}/${habit.targetCount}"
         HabitType.TIMER -> {
             val elapsed = formatSeconds(state.valueForSelectedDay)
             val target = formatSeconds(habit.targetDurationSeconds)
@@ -200,8 +202,14 @@ private fun HabitControl(
                     .size(30.dp)
                     .clip(CircleShape)
                     .background(if (state.doneOnSelectedDay) baseColor else Color.Transparent)
-                    .combinedClickable(onClick = onSimpleToggle, onLongClick = {})
-            )
+                    .border(2.dp, baseColor, CircleShape)
+                    .combinedClickable(onClick = onSimpleToggle, onLongClick = {}),
+                contentAlignment = Alignment.Center
+            ) {
+                if (state.doneOnSelectedDay) {
+                    Icon(Icons.Filled.Check, contentDescription = "Completed", tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+            }
         }
         HabitType.COUNT -> {
             Box(
@@ -209,12 +217,13 @@ private fun HabitControl(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(if (state.doneOnSelectedDay) baseColor else Color.Transparent)
+                    .border(2.dp, baseColor, CircleShape)
                     .combinedClickable(onClick = onIncrement, onLongClick = {}),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Increment",
+                    if (state.doneOnSelectedDay) Icons.Filled.Check else Icons.Filled.Add,
+                    contentDescription = if (state.doneOnSelectedDay) "Completed" else "Increment",
                     tint = if (state.doneOnSelectedDay) Color.White else baseColor
                 )
             }

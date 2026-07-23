@@ -8,23 +8,32 @@ class HabitRepository(private val dao: HabitDao) {
 
     fun getAllProgress() = dao.getAllProgress()
 
+    /** Inserts the habit and returns it with its generated id (needed to schedule reminders). */
     suspend fun addHabit(
         name: String,
         colorHex: String,
         type: HabitType,
         targetCount: Int,
-        targetDurationSeconds: Int
-    ) {
-        dao.insertHabit(
-            Habit(
-                name = name,
-                colorHex = colorHex,
-                habitType = type,
-                targetCount = targetCount,
-                targetDurationSeconds = targetDurationSeconds,
-                createdAtEpochDay = LocalDate.now().toEpochDay()
-            )
+        targetDurationSeconds: Int,
+        repeatDays: Set<Int>,
+        reminderEnabled: Boolean,
+        reminderHour: Int,
+        reminderMinute: Int
+    ): Habit {
+        val habit = Habit(
+            name = name,
+            colorHex = colorHex,
+            habitType = type,
+            targetCount = targetCount,
+            targetDurationSeconds = targetDurationSeconds,
+            createdAtEpochDay = LocalDate.now().toEpochDay(),
+            repeatDaysCsv = repeatDays.toCsv(),
+            reminderEnabled = reminderEnabled,
+            reminderHour = reminderHour,
+            reminderMinute = reminderMinute
         )
+        val id = dao.insertHabit(habit)
+        return habit.copy(id = id)
     }
 
     suspend fun deleteHabit(habit: Habit) {
@@ -75,5 +84,19 @@ class HabitRepository(private val dao: HabitDao) {
             cursor -= 1
         }
         return streak
+    }
+
+    /** Longest ever run of consecutive done days. */
+    suspend fun bestStreak(habitId: Long): Int {
+        val doneDays = dao.getProgressForHabit(habitId).filter { it.done }.map { it.epochDay }.sorted()
+        if (doneDays.isEmpty()) return 0
+
+        var best = 1
+        var current = 1
+        for (i in 1 until doneDays.size) {
+            current = if (doneDays[i] == doneDays[i - 1] + 1) current + 1 else 1
+            if (current > best) best = current
+        }
+        return best
     }
 }

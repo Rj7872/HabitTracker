@@ -21,7 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.habittracker.data.DailyProgress
 import com.example.habittracker.data.Habit
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -41,16 +40,24 @@ fun StreakCalendarScreen(viewModel: HabitViewModel) {
     var selectedHabit by remember(habits) { mutableStateOf(habits.first().habit) }
     var yearMonth by remember { mutableStateOf(YearMonth.now()) }
     var doneDays by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val scope = rememberCoroutineScope()
+    var best by remember { mutableStateOf(0) }
 
     LaunchedEffect(selectedHabit.id, habits) {
         // Re-pull this habit's full history whenever it changes.
         val progress = viewModel.progressForHabitBlocking(selectedHabit.id)
         doneDays = progress.filter { it.done }.map { it.epochDay }.toSet()
+        best = viewModel.bestStreakBlocking(selectedHabit.id)
     }
 
     val streak = habits.find { it.habit.id == selectedHabit.id }?.streak ?: 0
     val baseColor = runCatching { Color(android.graphics.Color.parseColor(selectedHabit.colorHex)) }.getOrDefault(Color.Gray)
+
+    val today = LocalDate.now()
+    val daysElapsedInMonth = if (YearMonth.from(today) == yearMonth) today.dayOfMonth else yearMonth.lengthOfMonth()
+    val doneThisMonth = doneDays.count { epochDay ->
+        val date = LocalDate.ofEpochDay(epochDay)
+        YearMonth.from(date) == yearMonth
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Streak calendar", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -76,13 +83,17 @@ fun StreakCalendarScreen(viewModel: HabitViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "🔥 $streak day streak",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+        Text("Records", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                RecordCard(emoji = "📅", value = "$daysElapsedInMonth", label = "Days in ${yearMonth.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())}", color = baseColor, modifier = Modifier.weight(1f))
+                RecordCard(emoji = "✅", value = "$doneThisMonth", label = "Done this month", color = baseColor, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                RecordCard(emoji = "🔥", value = "$streak", label = "Current streak", color = baseColor, modifier = Modifier.weight(1f))
+                RecordCard(emoji = "🏆", value = "$best", label = "Best streak", color = baseColor, modifier = Modifier.weight(1f))
             }
         }
 
@@ -109,6 +120,21 @@ fun StreakCalendarScreen(viewModel: HabitViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
 
         MonthGrid(yearMonth = yearMonth, doneDays = doneDays, color = baseColor)
+    }
+}
+
+@Composable
+private fun RecordCard(emoji: String, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.15f))
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

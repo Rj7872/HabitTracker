@@ -21,5 +21,15 @@ data class Habit(
     val habitType: HabitType = HabitType.SIMPLE,
     val targetCount: Int = 4,
     val targetDurationSeconds: Int = 1800,
-    val createdAtEpochDay: Long
-)
+    val createdAtEpochDay: Long,
+    /** Days of week this habit repeats on, using java.time.DayOfWeek values (Mon=1..Sun=7), comma-separated. */
+    val repeatDaysCsv: String = "1,2,3,4,5,6,7",
+    val reminderEnabled: Boolean = false,
+    val reminderHour: Int = 9,
+    val reminderMinute: Int = 0
+) {
+    val repeatDays: Set<Int>
+        get() = repeatDaysCsv.split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+}
+
+fun Set<Int>.toCsv(): String = joinToString(",")
