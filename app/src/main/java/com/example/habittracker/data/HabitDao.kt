@@ -30,4 +30,7 @@ interface HabitDao {
 
     @Query("SELECT * FROM daily_progress WHERE habitId = :habitId")
     suspend fun getProgressForHabit(habitId: Long): List<DailyProgress>
+
+    @Query("SELECT * FROM daily_progress")
+    suspend fun getAllProgressOnce(): List<DailyProgress>
 }

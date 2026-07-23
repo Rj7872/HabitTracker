@@ -71,36 +71,46 @@ class HabitRepository(private val dao: HabitDao) {
 
     suspend fun getProgressForHabit(habitId: Long): List<DailyProgress> = dao.getProgressForHabit(habitId)
 
+    /** Spends a Streak Freeze: marks the day as protected without requiring actual completion. */
+    suspend fun freezeDay(habitId: Long, epochDay: Long) {
+        val existing = dao.getProgress(habitId, epochDay)
+        if (existing?.done == true) return // already done, no need to freeze
+        dao.upsertProgress(DailyProgress(habitId, epochDay, value = existing?.value ?: 0, done = false, frozen = true))
+    }
+
     /**
      * Current streak = consecutive days ending today (or yesterday, if today
-     * isn't done yet) with a completed (done=true) progress record.
+     * isn't done yet) that are either completed or protected by a freeze.
      */
     suspend fun currentStreak(habitId: Long): Int {
-        val doneDays = dao.getProgressForHabit(habitId).filter { it.done }.map { it.epochDay }.toSet()
-        if (doneDays.isEmpty()) return 0
+        val countedDays = dao.getProgressForHabit(habitId).filter { it.done || it.frozen }.map { it.epochDay }.toSet()
+        if (countedDays.isEmpty()) return 0
 
         var cursor = LocalDate.now().toEpochDay()
-        if (cursor !in doneDays) cursor -= 1
+        if (cursor !in countedDays) cursor -= 1
 
         var streak = 0
-        while (cursor in doneDays) {
+        while (cursor in countedDays) {
             streak++
             cursor -= 1
         }
         return streak
     }
 
-    /** Longest ever run of consecutive done days. */
+    /** Longest ever run of consecutive completed-or-frozen days. */
     suspend fun bestStreak(habitId: Long): Int {
-        val doneDays = dao.getProgressForHabit(habitId).filter { it.done }.map { it.epochDay }.sorted()
-        if (doneDays.isEmpty()) return 0
+        val countedDays = dao.getProgressForHabit(habitId).filter { it.done || it.frozen }.map { it.epochDay }.sorted()
+        if (countedDays.isEmpty()) return 0
 
         var best = 1
         var current = 1
-        for (i in 1 until doneDays.size) {
-            current = if (doneDays[i] == doneDays[i - 1] + 1) current + 1 else 1
+        for (i in 1 until countedDays.size) {
+            current = if (countedDays[i] == countedDays[i - 1] + 1) current + 1 else 1
             if (current > best) best = current
         }
         return best
     }
+
+    /** Total number of habit-days actually completed across all habits, ever — used for achievement badges. */
+    suspend fun totalCompletions(): Int = dao.getAllProgressOnce().count { it.done }
 }

@@ -8,6 +8,7 @@ import com.example.habittracker.data.HabitRepository
 import com.example.habittracker.data.HabitType
 import com.example.habittracker.data.ReminderMode
 import com.example.habittracker.notifications.ReminderScheduler
+import com.example.habittracker.premium.FreezeManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ data class HabitUiState(
     val habit: Habit,
     val valueForSelectedDay: Int,
     val doneOnSelectedDay: Boolean,
+    val frozenOnSelectedDay: Boolean,
     val streak: Int,
     val isTimerRunning: Boolean
 )
@@ -39,6 +41,9 @@ class HabitViewModel(application: Application, private val repository: HabitRepo
     // kept as a simple in-memory map refreshed alongside uiState.
     private val streaks = MutableStateFlow<Map<Long, Int>>(emptyMap())
 
+    private val freezeCount = MutableStateFlow(FreezeManager.getFreezeCount(application))
+    val freezeCountFlow: StateFlow<Int> = freezeCount
+
     val uiState: StateFlow<List<HabitUiState>> =
         combine(
             repository.getAllHabits(),
@@ -53,6 +58,7 @@ class HabitViewModel(application: Application, private val repository: HabitRepo
                     habit = habit,
                     valueForSelectedDay = todayProgress?.value ?: 0,
                     doneOnSelectedDay = todayProgress?.done ?: false,
+                    frozenOnSelectedDay = todayProgress?.frozen ?: false,
                     streak = streakMap[habit.id] ?: 0,
                     isTimerRunning = running == habit.id
                 )
@@ -154,9 +160,27 @@ class HabitViewModel(application: Application, private val repository: HabitRepo
         viewModelScope.launch { refreshStreaks() }
     }
 
+    /** Called after a rewarded ad grants a freeze, so the UI count updates immediately. */
+    fun refreshFreezeCount() {
+        freezeCount.value = FreezeManager.getFreezeCount(getApplication())
+    }
+
+    /** Spends one Streak Freeze (if available) to protect this habit's streak for the selected day. */
+    fun useFreeze(habit: Habit) {
+        val context = getApplication<android.app.Application>()
+        if (!FreezeManager.useFreeze(context)) return
+        freezeCount.value = FreezeManager.getFreezeCount(context)
+        viewModelScope.launch {
+            repository.freezeDay(habit.id, selectedEpochDay.value)
+            refreshStreaks()
+        }
+    }
+
     suspend fun progressForHabitBlocking(habitId: Long) = repository.getProgressForHabit(habitId)
 
     suspend fun bestStreakBlocking(habitId: Long) = repository.bestStreak(habitId)
+
+    suspend fun totalCompletionsBlocking() = repository.totalCompletions()
 
     private suspend fun refreshStreaks() {
         val current = uiState.value

@@ -23,7 +23,7 @@ class Converters {
 
 @Database(
     entities = [Habit::class, DailyProgress::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

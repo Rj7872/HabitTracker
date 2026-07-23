@@ -10,6 +10,8 @@ import androidx.room.ForeignKey
  *   true once value >= habit.targetCount.
  * - For TIMER habits: `value` is elapsed seconds, `done` is true once
  *   value >= habit.targetDurationSeconds.
+ * - `frozen`: a Streak Freeze was spent on this day — the habit wasn't
+ *   actually completed, but the day still counts toward the streak.
  */
 @Entity(
     tableName = "daily_progress",
@@ -27,5 +29,6 @@ data class DailyProgress(
     val habitId: Long,
     val epochDay: Long,
     val value: Int = 0,
-    val done: Boolean = false
+    val done: Boolean = false,
+    val frozen: Boolean = false
 )

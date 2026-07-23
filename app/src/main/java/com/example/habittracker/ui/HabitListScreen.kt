@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -32,6 +33,7 @@ fun HabitListScreen(viewModel: HabitViewModel) {
     val habits by viewModel.uiState.collectAsState()
     val selectedEpochDay by viewModel.selectedEpochDayFlow.collectAsState()
     val selectedDate = remember(selectedEpochDay) { LocalDate.ofEpochDay(selectedEpochDay) }
+    val freezeCount by viewModel.freezeCountFlow.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var habitPendingDelete by remember { mutableStateOf<HabitUiState?>(null) }
@@ -97,9 +99,11 @@ fun HabitListScreen(viewModel: HabitViewModel) {
                     items(habits, key = { it.habit.id }) { state ->
                         HabitRow(
                             state = state,
+                            freezeAvailable = freezeCount > 0,
                             onSimpleToggle = { viewModel.toggleSimple(state.habit) },
                             onIncrement = { viewModel.incrementCount(state.habit) },
                             onTimerToggle = { viewModel.toggleTimer(state.habit) },
+                            onUseFreeze = { viewModel.useFreeze(state.habit) },
                             onLongPress = { habitPendingDelete = state }
                         )
                     }
@@ -147,9 +151,11 @@ fun HabitListScreen(viewModel: HabitViewModel) {
 @Composable
 private fun HabitRow(
     state: HabitUiState,
+    freezeAvailable: Boolean,
     onSimpleToggle: () -> Unit,
     onIncrement: () -> Unit,
     onTimerToggle: () -> Unit,
+    onUseFreeze: () -> Unit,
     onLongPress: () -> Unit
 ) {
     val habit = state.habit
@@ -172,17 +178,30 @@ private fun HabitRow(
                 .background(baseColor),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                habit.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium
-            )
+            if (state.frozenOnSelectedDay) {
+                Icon(Icons.Filled.AcUnit, contentDescription = "Frozen", tint = Color.White, modifier = Modifier.size(20.dp))
+            } else {
+                Text(
+                    habit.name.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
         }
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(habit.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(subtitleFor(state), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (freezeAvailable && !state.doneOnSelectedDay && !state.frozenOnSelectedDay) {
+            IconButton(onClick = onUseFreeze, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Filled.AcUnit,
+                    contentDescription = "Use Streak Freeze",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         Spacer(modifier = Modifier.width(8.dp))
         HabitControl(state = state, baseColor = baseColor, onSimpleToggle = onSimpleToggle, onIncrement = onIncrement, onTimerToggle = onTimerToggle)
@@ -190,6 +209,7 @@ private fun HabitRow(
 }
 
 private fun subtitleFor(state: HabitUiState): String {
+    if (state.frozenOnSelectedDay) return "Streak protected \u2744\uFE0F"
     val habit = state.habit
     return when (habit.habitType) {
         HabitType.SIMPLE -> if (state.doneOnSelectedDay) "Completed" else "Not completed"
