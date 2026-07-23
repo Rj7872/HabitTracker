@@ -35,68 +35,87 @@ fun HabitListScreen(viewModel: HabitViewModel) {
 
     var showAddDialog by remember { mutableStateOf(false) }
     var habitPendingDelete by remember { mutableStateOf<HabitUiState?>(null) }
+    var showCelebration by remember { mutableStateOf(false) }
+    var previousDone by remember { mutableStateOf<Map<Long, Boolean>>(emptyMap()) }
+
+    LaunchedEffect(habits) {
+        val justCompleted = habits.any { state ->
+            previousDone[state.habit.id] == false && state.doneOnSelectedDay
+        }
+        if (justCompleted) showCelebration = true
+        previousDone = habits.associate { it.habit.id to it.doneOnSelectedDay }
+    }
 
     val habitColors = habits.map { it.habit.colorHex }
 
-    Scaffold(
-        topBar = {
-            WeekStrip(
-                selectedDate = selectedDate,
-                habitColors = habitColors,
-                doneOnDay = { date ->
-                    if (date == selectedDate) {
-                        habits.mapIndexedNotNull { index, state -> if (state.doneOnSelectedDay) index else null }.toSet()
-                    } else emptySet()
-                },
-                onSelectDate = { viewModel.selectDate(it) },
-                onJumpToday = { viewModel.selectToday() }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add habit")
-            }
-        },
-        bottomBar = { BannerAd() }
-    ) { padding ->
-        if (habits.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "No habits yet. Tap + to add your first one.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                WeekStrip(
+                    selectedDate = selectedDate,
+                    habitColors = habitColors,
+                    doneOnDay = { date ->
+                        if (date == selectedDate) {
+                            habits.mapIndexedNotNull { index, state -> if (state.doneOnSelectedDay) index else null }.toSet()
+                        } else emptySet()
+                    },
+                    onSelectDate = { viewModel.selectDate(it) },
+                    onJumpToday = { viewModel.selectToday() }
                 )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(habits, key = { it.habit.id }) { state ->
-                    HabitRow(
-                        state = state,
-                        onSimpleToggle = { viewModel.toggleSimple(state.habit) },
-                        onIncrement = { viewModel.incrementCount(state.habit) },
-                        onTimerToggle = { viewModel.toggleTimer(state.habit) },
-                        onLongPress = { habitPendingDelete = state }
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = { showAddDialog = true }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add habit")
+                }
+            },
+            bottomBar = { BannerAd() }
+        ) { padding ->
+            if (habits.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No habits yet. Tap + to add your first one.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(habits, key = { it.habit.id }) { state ->
+                        HabitRow(
+                            state = state,
+                            onSimpleToggle = { viewModel.toggleSimple(state.habit) },
+                            onIncrement = { viewModel.incrementCount(state.habit) },
+                            onTimerToggle = { viewModel.toggleTimer(state.habit) },
+                            onLongPress = { habitPendingDelete = state }
+                        )
+                    }
+                }
             }
+        }
+
+        if (showCelebration) {
+            CelebrationOverlay(onFinished = { showCelebration = false })
         }
     }
 
     if (showAddDialog) {
         AddHabitDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, colorHex, type, targetCount, targetMinutes, repeatDays, reminderEnabled, reminderHour, reminderMinute ->
-                viewModel.addHabit(name, colorHex, type, targetCount, targetMinutes, repeatDays, reminderEnabled, reminderHour, reminderMinute)
+            onConfirm = { name, colorHex, type, targetCount, targetMinutes, repeatDays, reminderEnabled, reminderMode, reminderHour, reminderMinute, reminderIntervalMinutes ->
+                viewModel.addHabit(
+                    name, colorHex, type, targetCount, targetMinutes, repeatDays,
+                    reminderEnabled, reminderMode, reminderHour, reminderMinute, reminderIntervalMinutes
+                )
                 showAddDialog = false
             }
         )

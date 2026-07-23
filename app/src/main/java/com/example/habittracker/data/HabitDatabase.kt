@@ -13,11 +13,17 @@ class Converters {
 
     @TypeConverter
     fun toHabitType(value: String): HabitType = HabitType.valueOf(value)
+
+    @TypeConverter
+    fun fromReminderMode(mode: ReminderMode): String = mode.name
+
+    @TypeConverter
+    fun toReminderMode(value: String): ReminderMode = ReminderMode.valueOf(value)
 }
 
 @Database(
     entities = [Habit::class, DailyProgress::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

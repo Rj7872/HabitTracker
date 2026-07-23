@@ -17,8 +17,10 @@ class HabitRepository(private val dao: HabitDao) {
         targetDurationSeconds: Int,
         repeatDays: Set<Int>,
         reminderEnabled: Boolean,
+        reminderMode: ReminderMode,
         reminderHour: Int,
-        reminderMinute: Int
+        reminderMinute: Int,
+        reminderIntervalMinutes: Int
     ): Habit {
         val habit = Habit(
             name = name,
@@ -29,8 +31,10 @@ class HabitRepository(private val dao: HabitDao) {
             createdAtEpochDay = LocalDate.now().toEpochDay(),
             repeatDaysCsv = repeatDays.toCsv(),
             reminderEnabled = reminderEnabled,
+            reminderMode = reminderMode,
             reminderHour = reminderHour,
-            reminderMinute = reminderMinute
+            reminderMinute = reminderMinute,
+            reminderIntervalMinutes = reminderIntervalMinutes
         )
         val id = dao.insertHabit(habit)
         return habit.copy(id = id)

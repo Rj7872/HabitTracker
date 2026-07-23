@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.habittracker.data.Habit
 import com.example.habittracker.data.HabitRepository
 import com.example.habittracker.data.HabitType
+import com.example.habittracker.data.ReminderMode
 import com.example.habittracker.notifications.ReminderScheduler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -88,14 +89,16 @@ class HabitViewModel(application: Application, private val repository: HabitRepo
         targetDurationMinutes: Int,
         repeatDays: Set<Int>,
         reminderEnabled: Boolean,
+        reminderMode: ReminderMode,
         reminderHour: Int,
-        reminderMinute: Int
+        reminderMinute: Int,
+        reminderIntervalMinutes: Int
     ) {
         if (name.isBlank()) return
         viewModelScope.launch {
             val habit = repository.addHabit(
                 name.trim(), colorHex, type, targetCount, targetDurationMinutes * 60,
-                repeatDays, reminderEnabled, reminderHour, reminderMinute
+                repeatDays, reminderEnabled, reminderMode, reminderHour, reminderMinute, reminderIntervalMinutes
             )
             if (habit.reminderEnabled) {
                 ReminderScheduler.schedule(getApplication(), habit)

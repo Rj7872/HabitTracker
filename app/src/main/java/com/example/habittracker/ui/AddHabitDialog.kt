@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.habittracker.data.HabitType
+import com.example.habittracker.data.ReminderMode
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -37,6 +38,7 @@ val HabitColorPalette = listOf(
 
 // Monday=1 .. Sunday=7, matching java.time.DayOfWeek.value
 private val AllDays = (1..7).toList()
+private val IntervalOptionsMinutes = listOf(30, 60, 120, 180, 240, 360)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,8 +52,10 @@ fun AddHabitDialog(
         targetMinutes: Int,
         repeatDays: Set<Int>,
         reminderEnabled: Boolean,
+        reminderMode: ReminderMode,
         reminderHour: Int,
-        reminderMinute: Int
+        reminderMinute: Int,
+        reminderIntervalMinutes: Int
     ) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
@@ -60,9 +64,13 @@ fun AddHabitDialog(
     var targetCountText by remember { mutableStateOf("4") }
     var targetMinutesText by remember { mutableStateOf("30") }
     var repeatDays by remember { mutableStateOf(AllDays.toSet()) }
+
     var reminderEnabled by remember { mutableStateOf(false) }
+    var reminderMode by remember { mutableStateOf(ReminderMode.FIXED_TIME) }
     var reminderHour by remember { mutableStateOf(9) }
     var reminderMinute by remember { mutableStateOf(0) }
+    var reminderIntervalMinutes by remember { mutableStateOf(120) }
+    var showReminderPicker by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -148,16 +156,27 @@ fun AddHabitDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Remind me", style = MaterialTheme.typography.labelLarge)
-                    Switch(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
+                    Switch(
+                        checked = reminderEnabled,
+                        onCheckedChange = {
+                            reminderEnabled = it
+                            if (it) showReminderPicker = true
+                        }
+                    )
                 }
 
                 if (reminderEnabled) {
-                    TimeStepper(
-                        hour = reminderHour,
-                        minute = reminderMinute,
-                        onHourChange = { reminderHour = it },
-                        onMinuteChange = { reminderMinute = it }
-                    )
+                    OutlinedButton(
+                        onClick = { showReminderPicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (reminderMode == ReminderMode.FIXED_TIME)
+                                "Reminder at %02d:%02d".format(reminderHour, reminderMinute)
+                            else
+                                "Every ${formatInterval(reminderIntervalMinutes)}"
+                        )
+                    }
                 }
             }
         },
@@ -172,8 +191,10 @@ fun AddHabitDialog(
                         targetMinutesText.toIntOrNull() ?: 30,
                         repeatDays,
                         reminderEnabled,
+                        reminderMode,
                         reminderHour,
-                        reminderMinute
+                        reminderMinute,
+                        reminderIntervalMinutes
                     )
                 },
                 enabled = name.isNotBlank() && repeatDays.isNotEmpty()
@@ -183,6 +204,28 @@ fun AddHabitDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+
+    if (showReminderPicker) {
+        ReminderPickerDialog(
+            habitType = selectedType,
+            initialMode = reminderMode,
+            initialHour = reminderHour,
+            initialMinute = reminderMinute,
+            initialIntervalMinutes = reminderIntervalMinutes,
+            onDismiss = {
+                showReminderPicker = false
+                // If they backed out without ever confirming a time, leave the
+                // toggle on with defaults rather than silently turning it off.
+            },
+            onConfirm = { mode, hour, minute, intervalMinutes ->
+                reminderMode = mode
+                reminderHour = hour
+                reminderMinute = minute
+                reminderIntervalMinutes = intervalMinutes
+                showReminderPicker = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -213,7 +256,12 @@ private fun DayOfWeekSelector(selectedDays: Set<Int>, onToggleDay: (Int) -> Unit
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .border(
+                        width = 1.5.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        shape = CircleShape
+                    )
                     .clickable { onToggleDay(day) },
                 contentAlignment = Alignment.Center
             ) {
@@ -221,24 +269,106 @@ private fun DayOfWeekSelector(selectedDays: Set<Int>, onToggleDay: (Int) -> Unit
                     label,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                 )
             }
         }
     }
 }
 
+private fun formatInterval(minutes: Int): String = when {
+    minutes % 60 == 0 -> "${minutes / 60}h"
+    else -> "${minutes}m"
+}
+
+/** Popup shown when "Remind me" is turned on — lets the user pick a fixed time,
+ * or (for Counter habits) a repeating interval instead. */
 @Composable
-private fun TimeStepper(hour: Int, minute: Int, onHourChange: (Int) -> Unit, onMinuteChange: (Int) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        NumberStepper(value = hour, range = 0..23, onChange = onHourChange, label = { "%02d".format(it) })
-        Text(":", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 8.dp))
-        NumberStepper(value = minute, range = 0..59, step = 5, onChange = onMinuteChange, label = { "%02d".format(it) })
-    }
+private fun ReminderPickerDialog(
+    habitType: HabitType,
+    initialMode: ReminderMode,
+    initialHour: Int,
+    initialMinute: Int,
+    initialIntervalMinutes: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (ReminderMode, Int, Int, Int) -> Unit
+) {
+    var mode by remember { mutableStateOf(initialMode) }
+    var hour by remember { mutableStateOf(initialHour) }
+    var minute by remember { mutableStateOf(initialMinute) }
+    var intervalMinutes by remember { mutableStateOf(initialIntervalMinutes) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Set reminder") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (habitType == HabitType.COUNT) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = mode == ReminderMode.FIXED_TIME,
+                            onClick = { mode = ReminderMode.FIXED_TIME },
+                            label = { Text("Once a day") }
+                        )
+                        FilterChip(
+                            selected = mode == ReminderMode.INTERVAL,
+                            onClick = { mode = ReminderMode.INTERVAL },
+                            label = { Text("Every few hours") }
+                        )
+                    }
+                }
+
+                if (mode == ReminderMode.FIXED_TIME) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        NumberStepper(value = hour, range = 0..23, onChange = { hour = it }, label = { "%02d".format(it) })
+                        Text(":", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 8.dp))
+                        NumberStepper(value = minute, range = 0..59, step = 5, onChange = { minute = it }, label = { "%02d".format(it) })
+                    }
+                } else {
+                    Text("Remind every:", style = MaterialTheme.typography.labelLarge)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        IntervalOptionsMinutes.forEach { option ->
+                            val isSelected = intervalMinutes == option
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { intervalMinutes = option }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    formatInterval(option),
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        "You'll get a nudge every ${formatInterval(intervalMinutes)} on the days this habit repeats.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(mode, hour, minute, intervalMinutes) }) { Text("Done") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
