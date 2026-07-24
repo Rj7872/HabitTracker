@@ -38,6 +38,7 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
     var dynamicColor by remember { mutableStateOf(isDynamicColorEnabled(context)) }
     val freezeCount by viewModel.freezeCountFlow.collectAsState()
     val adReady by RewardedAdManager.isReadyFlow.collectAsState()
+    val adError by RewardedAdManager.lastErrorFlow.collectAsState()
 
     LaunchedEffect(Unit) { RewardedAdManager.preload(context) }
 
@@ -142,6 +143,15 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Loading ad\u2026")
                 }
+            }
+
+            adError?.let {
+                Text(
+                    "Ad error: $it",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
             }
         }
 

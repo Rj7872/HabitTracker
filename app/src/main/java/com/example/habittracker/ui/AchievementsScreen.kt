@@ -56,6 +56,14 @@ fun AchievementsScreen(viewModel: HabitViewModel) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        val adError by RewardedAdManager.lastErrorFlow.collectAsState()
+        adError?.let {
+            Text(
+                "Ad error: $it",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyVerticalGrid(
