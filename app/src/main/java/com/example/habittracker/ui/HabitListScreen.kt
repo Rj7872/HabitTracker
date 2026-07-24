@@ -76,7 +76,7 @@ fun HabitListScreen(viewModel: HabitViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 96.dp)
             ) {
                 item {
                     HomeHeader(doneCount = doneCount, totalCount = totalCount, progressFraction = progressFraction, progressPercent = progressPercent)
