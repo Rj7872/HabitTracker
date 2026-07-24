@@ -26,7 +26,7 @@ private const val PREFS_NAME = "habit_tracker_prefs"
 private const val KEY_DYNAMIC_COLOR = "dynamic_color"
 
 fun isDynamicColorEnabled(context: Context): Boolean =
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(KEY_DYNAMIC_COLOR, true)
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(KEY_DYNAMIC_COLOR, false)
 
 private fun setDynamicColorEnabled(context: Context, enabled: Boolean) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_DYNAMIC_COLOR, enabled).apply()
@@ -161,7 +161,7 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
 
         Text("About", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("Habit Tracker v1.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("HabitRise v1.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             "All your data stays on this device — nothing is uploaded anywhere.",
             style = MaterialTheme.typography.bodySmall,

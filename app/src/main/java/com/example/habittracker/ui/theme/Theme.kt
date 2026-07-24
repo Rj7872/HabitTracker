@@ -11,21 +11,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// A warmer, more distinctive palette than the Material defaults — deep teal
-// primary with a coral accent, instead of generic purple.
+// HabitRise brand palette: deep teal primary on a soft mint background,
+// white cards — matches the app's onboarding and home screen reference design.
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF00695C),
+    primary = Color(0xFF0E8C7F),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFB2DFDB),
-    onPrimaryContainer = Color(0xFF00251F),
+    primaryContainer = Color(0xFFCFEFE9),
+    onPrimaryContainer = Color(0xFF00201B),
     secondary = Color(0xFFFF7043),
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFFFDBCF),
     onSecondaryContainer = Color(0xFF3A0B00),
-    background = Color(0xFFFAFAF7),
+    background = Color(0xFFEAF7F2),
     surface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0xFFE8ECEA),
-    onSurfaceVariant = Color(0xFF4A4E4D)
+    surfaceVariant = Color(0xFFE3EEEA),
+    onSurfaceVariant = Color(0xFF49554F),
+    onBackground = Color(0xFF13251F),
+    onSurface = Color(0xFF13251F)
 )
 
 private val DarkColors = darkColorScheme(
@@ -49,7 +51,7 @@ val HabitLightGreen = Color(0xFF81C784)
 @Composable
 fun HabitTrackerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

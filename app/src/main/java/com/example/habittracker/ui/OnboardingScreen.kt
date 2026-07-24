@@ -1,20 +1,19 @@
 package com.example.habittracker.ui
 
 import android.content.Context
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.habittracker.R
 
 private const val ONBOARDING_PREFS = "habit_tracker_onboarding"
 private const val KEY_COMPLETE = "onboarding_complete"
@@ -31,52 +30,48 @@ fun OnboardingScreen(onContinue: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
+        Image(
+            painter = painterResource(id = R.mipmap.ic_launcher),
+            contentDescription = null,
             modifier = Modifier
-                .size(140.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Filled.SelfImprovement,
-                contentDescription = null,
-                modifier = Modifier.size(72.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
+                .size(120.dp)
+                .clip(RoundedCornerShape(28.dp))
+        )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         Text(
-            "Welcome to Habit Tracker",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            "HabitRise",
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            "Small daily wins add up. Track habits your way — quick check-offs, counters, or timers — and watch your streaks grow.",
+            "Your Journey Starts Now.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(56.dp))
 
         Button(
             onClick = onContinue,
-            modifier = Modifier.fillMaxWidth().height(52.dp)
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
         ) {
-            Text("Get started")
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.Filled.ArrowForward, contentDescription = null)
+            Text("Get Started", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
