@@ -45,7 +45,7 @@ fun OnboardingScreen(onContinue: () -> Unit) {
         Spacer(modifier = Modifier.height(28.dp))
 
         Text(
-            "HabitRise",
+            "Zestreak",
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary,

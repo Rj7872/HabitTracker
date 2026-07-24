@@ -44,7 +44,7 @@ object NotificationHelper {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Time for: $habitName")
-            .setContentText("Tap to open HabitRise and check it off.")
+            .setContentText("Tap to open Zestreak and check it off.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

@@ -36,24 +36,29 @@ app/src/main/java/com/example/habittracker/
 ```
 
 ## AdMob ads
-A banner ad now sits at the bottom of the screen, using **Google's test
-IDs** — safe to build and run right now with zero setup, but they only ever
-show placeholder "Test Ad" banners and never earn revenue.
+This app uses **real AdMob IDs** (App ID, and ad unit IDs for banner,
+interstitial, and rewarded ads) — not Google's placeholder test IDs.
 
-Before publishing, swap in your own IDs from https://apps.admob.com:
-1. **App ID** — in `AndroidManifest.xml`, replace the value of the
-   `com.google.android.gms.ads.APPLICATION_ID` meta-data tag.
-2. **Banner ad unit ID** — in `ui/BannerAd.kt`, replace
-   `TEST_BANNER_AD_UNIT_ID` with your real banner ad unit ID.
+- **Banner** — bottom of the Home screen (`ui/BannerAd.kt`)
+- **Rewarded** — "Watch ad for +1 Freeze" in Settings, and badge claims in
+  Achievements (`ads/RewardedAdManager.kt`)
+- **Interstitial** — shown after every 3rd time you add a new habit, so it
+  doesn't interrupt someone setting up several habits in a row
+  (`ads/InterstitialAdManager.kt`)
 
-Don't swap in real IDs until you're ready to test with real ad traffic —
-Google can flag accounts for invalid traffic if test devices repeatedly
-request real ads. While developing, add your device as a test device via
-`RequestConfiguration` if you want to preview real ad units safely.
+⚠️ **Important while developing**: tapping/watching real ads repeatedly
+from the same device without genuine ad interest counts as **invalid
+traffic** in Google's eyes, and can get your AdMob account flagged or
+suspended. Register your device as a test device (via
+`RequestConfiguration.setTestDeviceIds(...)` in `HabitTrackerApp.kt`) if
+you need to keep testing after this point — that shows Google-labeled test
+ads on your real ad units without counting against you, and is much safer
+than clicking your own live ads repeatedly.
 
-Want interstitial (full-screen) or rewarded ads too? Those need a slightly
-different pattern (load ahead of time, then show at a natural break point
-like after marking a few habits done) — happy to add either.
+Also worth setting up before you publish: **app-ads.txt** on the website
+tied to your Play Store developer account, listing your AdMob publisher ID
+as an authorized seller — AdMob will show a warning banner until this is
+in place.
 
 ## Extending it
 - **Reminders**: add `AlarmManager` or `WorkManager` scheduled notifications per habit.

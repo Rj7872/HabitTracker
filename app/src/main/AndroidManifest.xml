@@ -14,14 +14,11 @@
         android:theme="@style/Theme.HabitTracker">
 
         <!--
-          TEST App ID from Google (safe to ship while developing — never
-          shows real ads or generates revenue). Replace with your own
-          App ID from the AdMob console before release.
-          https://apps.admob.com -> Apps -> your app -> App settings
+          Real AdMob App ID for this app.
         -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-2574875254966474~3770650198" />
 
         <activity
             android:name=".MainActivity"

@@ -3,7 +3,6 @@ package com.example.habittracker.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -72,23 +71,30 @@ fun StreakCalendarScreen(viewModel: HabitViewModel) {
         Text("Streak calendar", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Habit selector chips
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            habits.forEach { state ->
-                val color = runCatching { Color(android.graphics.Color.parseColor(state.habit.colorHex)) }.getOrDefault(Color.Gray)
-                val isSelected = state.habit.id == selectedHabit.id
-                AssistChip(
-                    onClick = { selectedHabit = state.habit },
-                    label = { Text(state.habit.name, maxLines = 1) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (isSelected) color else Color.Transparent
-                    )
-                )
+        // Habit selector chips — wraps into rows instead of scrolling sideways.
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            habits.chunked(2).forEach { rowHabits ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowHabits.forEach { state ->
+                        val color = runCatching { Color(android.graphics.Color.parseColor(state.habit.colorHex)) }.getOrDefault(Color.Gray)
+                        val isSelected = state.habit.id == selectedHabit.id
+                        AssistChip(
+                            onClick = { selectedHabit = state.habit },
+                            label = { Text(state.habit.name, maxLines = 1) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (isSelected) color else Color.Transparent
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Pad an odd last row so its single chip doesn't stretch full width.
+                    if (rowHabits.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
 

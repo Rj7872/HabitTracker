@@ -38,7 +38,6 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
     var dynamicColor by remember { mutableStateOf(isDynamicColorEnabled(context)) }
     val freezeCount by viewModel.freezeCountFlow.collectAsState()
     val adReady by RewardedAdManager.isReadyFlow.collectAsState()
-    val adError by RewardedAdManager.lastErrorFlow.collectAsState()
 
     LaunchedEffect(Unit) { RewardedAdManager.preload(context) }
 
@@ -144,15 +143,6 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
                     Text("Loading ad\u2026")
                 }
             }
-
-            adError?.let {
-                Text(
-                    "Ad error: $it",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -161,7 +151,7 @@ fun SettingsScreen(viewModel: HabitViewModel, onDynamicColorChanged: (Boolean) -
 
         Text("About", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
-        Text("HabitRise v1.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Zestreak v1.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             "All your data stays on this device — nothing is uploaded anywhere.",
             style = MaterialTheme.typography.bodySmall,

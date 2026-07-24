@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// HabitRise brand palette: deep teal primary on a soft mint background,
+// Zestreak brand palette: deep teal primary on a soft mint background,
 // white cards — matches the app's onboarding and home screen reference design.
 private val LightColors = lightColorScheme(
     primary = Color(0xFF0E8C7F),

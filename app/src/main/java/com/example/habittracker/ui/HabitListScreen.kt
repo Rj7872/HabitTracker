@@ -119,6 +119,7 @@ fun HabitListScreen(viewModel: HabitViewModel) {
     }
 
     if (showAddDialog) {
+        val context = androidx.compose.ui.platform.LocalContext.current
         AddHabitDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { name, colorHex, type, targetCount, targetMinutes, repeatDays, reminderEnabled, reminderMode, reminderHour, reminderMinute, reminderIntervalMinutes ->
@@ -127,6 +128,9 @@ fun HabitListScreen(viewModel: HabitViewModel) {
                     reminderEnabled, reminderMode, reminderHour, reminderMinute, reminderIntervalMinutes
                 )
                 showAddDialog = false
+                (context as? android.app.Activity)?.let {
+                    com.example.habittracker.ads.InterstitialAdManager.maybeShowAfterAction(it)
+                }
             }
         )
     }

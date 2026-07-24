@@ -14,12 +14,8 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Test rewarded ad unit ID from Google — safe to ship during development,
- * never serves real ads. Replace with your own rewarded ad unit ID from the
- * AdMob console before release (Apps -> your app -> Ad units).
- */
-private const val TEST_REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+/** Real rewarded ad unit ID for this app. */
+private const val REWARDED_AD_UNIT_ID = "ca-app-pub-2574875254966474/5367782831"
 private const val RETRY_DELAY_MS = 15_000L
 private const val LOAD_WATCHDOG_MS = 20_000L
 
@@ -62,7 +58,7 @@ object RewardedAdManager {
 
         RewardedAd.load(
             appContext,
-            TEST_REWARDED_AD_UNIT_ID,
+            REWARDED_AD_UNIT_ID,
             AdRequest.Builder().build(),
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) {
