@@ -68,6 +68,7 @@ fun AchievementsScreen(viewModel: HabitViewModel) {
                 val progress = when (badge.metric) {
                     BadgeMetric.BEST_STREAK -> bestStreakEver
                     BadgeMetric.TOTAL_COMPLETIONS -> totalCompletions
+                    BadgeMetric.HABIT_COUNT -> habits.size
                 }
                 val isEligible = progress >= badge.threshold
                 val isClaimed = badge.id in claimedIds

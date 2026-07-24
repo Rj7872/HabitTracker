@@ -33,7 +33,15 @@ val HabitColorPalette = listOf(
     "#F2994A", // orange
     "#BB6BD9", // pink-purple
     "#56CCF2", // blue
-    "#F783AC"  // pink
+    "#F783AC", // pink
+    "#26A69A", // teal
+    "#5C6BC0", // indigo
+    "#8D6E63", // brown
+    "#78909C", // blue-gray
+    "#66BB6A", // dark green
+    "#4DD0E1", // cyan
+    "#EC407A", // magenta
+    "#D4E157"  // lime
 )
 
 // Monday=1 .. Sunday=7, matching java.time.DayOfWeek.value
@@ -92,25 +100,29 @@ fun AddHabitDialog(
                 )
 
                 Text("Color", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    HabitColorPalette.forEach { hex ->
-                        val color = Color(android.graphics.Color.parseColor(hex))
-                        val isSelected = hex == selectedColor
-                        Box(
-                            modifier = Modifier
-                                .size(if (isSelected) 40.dp else 32.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .then(
-                                    if (isSelected)
-                                        Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                    else Modifier
-                                )
-                                .clickable { selectedColor = hex },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isSelected) {
-                                Icon(Icons.Filled.Check, contentDescription = "Selected", tint = Color.White)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HabitColorPalette.chunked(6).forEach { rowColors ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            rowColors.forEach { hex ->
+                                val color = Color(android.graphics.Color.parseColor(hex))
+                                val isSelected = hex == selectedColor
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (isSelected) 40.dp else 32.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .then(
+                                            if (isSelected)
+                                                Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                                            else Modifier
+                                        )
+                                        .clickable { selectedColor = hex },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(Icons.Filled.Check, contentDescription = "Selected", tint = Color.White)
+                                    }
+                                }
                             }
                         }
                     }
