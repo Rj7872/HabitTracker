@@ -35,7 +35,7 @@ fun OnboardingScreen(onContinue: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.ic_launcher),
+            painter = painterResource(id = R.drawable.onboarding_logo),
             contentDescription = null,
             modifier = Modifier
                 .size(120.dp)
